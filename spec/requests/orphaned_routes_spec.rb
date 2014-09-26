@@ -36,8 +36,9 @@ describe "Check for orphaned routes" do
         # ActionController::ParameterMissing happens because we aren't submitting params to create or update
       rescue => ex
         # Print the route which threw an error and the error it threw
-        puts route.inspect
-        puts ex.inspect
+        puts "Route: #{route.inspect}"
+        puts 'Raised an exception:'
+        puts "\t#{ex.inspect}\n"
       end
     end
 
