@@ -28,7 +28,7 @@ describe "Check for orphaned routes" do
     orphaned_routes = []
 
     routes_to_test = defined_routes.reject do |route|
-      # Ignore the assets, api, and pages/*id routes
+      # Ignore the assets routes
       route[:path].starts_with?("/assets")
     end
 
