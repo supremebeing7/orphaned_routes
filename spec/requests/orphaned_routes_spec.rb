@@ -9,7 +9,13 @@ describe "Check for orphaned routes" do
       # Turn the route path spec into a string:
       # - Remove the "(.:format)" bit at the end
       # - Use "1" for all params
-      path = route.path.spec.to_s.gsub(/\(\.:format\)/, "").gsub(/:[a-zA-Z_]+/, "1")
+      if subdomain = route.constraints[:subdomain]
+        # Allows testing subdomain routes using lvh.me for the local dev site
+        full_path = "http://#{subdomain}.lvh.me:3232#{route.path.spec.to_s}"
+        path = full_path.gsub(/\(\.:format\)/, "").gsub(/:[a-zA-Z_]+/, "1")
+      else
+        path = route.path.spec.to_s.gsub(/\(\.:format\)/, "").gsub(/:[a-zA-Z_]+/, "1")
+      end
       # Route verbs are stored as regular expressions; convert them to symbols
       verb = %W{ GET POST PUT PATCH DELETE }.grep(route.verb).first.downcase.to_sym
       # Return a hash with two keys: the route path and it's verb
@@ -21,8 +27,12 @@ describe "Check for orphaned routes" do
 
     orphaned_routes = []
 
-    # Ignore the assets route
-    defined_routes.reject { |route| route[:path].starts_with?("/assets") }.each do |route|
+    routes_to_test = defined_routes.reject do |route|
+      # Ignore the assets, api, and pages/*id routes
+      route[:path].starts_with?("/assets")
+    end
+
+    routes_to_test.each do |route|
       begin
         reset!
         # Use the route's verb to access the route's path
@@ -31,12 +41,17 @@ describe "Check for orphaned routes" do
         # ActionController::RoutingError means the controller doesn't exist
         # AbstractController::ActionNotFound means the action doesn't exist
         orphaned_routes << "#{route[:verb]} #{route[:path]}"
-      rescue ActiveRecord::RecordNotFound, ActionController::ParameterMissing
+      rescue ActiveRecord::RecordNotFound,
+              ActionController::ParameterMissing,
+              NoMethodError,
+              ActionView::Template::Error
         # ActiveRecord::RecordNotFound happens because we are using 1 for all the route params
         # ActionController::ParameterMissing happens because we aren't submitting params to create or update
+        # NoMethodError usually happens from an API post since we're not sending actual data
+        # ActionView::Template::Error happens typically when a view tries to render with our faulty test data
       rescue => ex
         # Print the route which threw an error and the error it threw
-        puts "Route: #{route.inspect}"
+        puts "Route: #{route[:verb]} #{route[:path]}"
         puts 'Raised an exception:'
         puts "\t#{ex.inspect}\n"
       end
