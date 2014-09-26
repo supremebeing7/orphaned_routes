@@ -34,6 +34,10 @@ describe "Check for orphaned routes" do
       rescue ActiveRecord::RecordNotFound, ActionController::ParameterMissing
         # ActiveRecord::RecordNotFound happens because we are using 1 for all the route params
         # ActionController::ParameterMissing happens because we aren't submitting params to create or update
+      rescue => ex
+        # Print the route which threw an error and the error it threw
+        puts route.inspect
+        puts ex.inspect
       end
     end
 
